@@ -1,6 +1,6 @@
 {
   "author": "Thomas Chafiol - thomaschaf@gmail.com",
-  "name": "as-react-infinite-scroller",
+  "name": "react-infinite-scroller",
   "version": "1.0.14",
   "description": "Infinite scroll component for React in ES6",
   "main": "index.js",
