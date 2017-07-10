@@ -12,7 +12,7 @@
     "start": "next start",
     "next": "next",
     "build": "mkdir -p dist && babel src/InfiniteScroll.js --out-file dist/InfiniteScroll.js",
-    "post-install": "npm run build",
+    "postinstall": "npm run build",
     "test": "nyc npm run spec",
     "spec": "_mocha -R spec ./test/test_helper.js --recursive test/*_test.js",
     "lint": "eslint src test"
