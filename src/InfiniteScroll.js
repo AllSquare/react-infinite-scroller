@@ -1,9 +1,7 @@
-import React, {
-  Component,
-} from 'react';
-import PropTypes from 'prop-types';
+import React from 'react'
+import PropTypes from 'prop-types'
 
-export default class InfiniteScroll extends Component {
+export default class InfiniteScroll extends React.Component {
   static propTypes = {
     element: PropTypes.string,
     hasMore: PropTypes.bool,
@@ -14,12 +12,9 @@ export default class InfiniteScroll extends Component {
     threshold: PropTypes.number,
     useCapture: PropTypes.bool,
     useWindow: PropTypes.bool,
-    children: PropTypes.oneOfType([
-      PropTypes.object,
-      PropTypes.array,
-    ]).isRequired,
-    loader: PropTypes.object,
-  };
+    children: PropTypes.array.isRequired,
+    loader: PropTypes.object
+  }
 
   static defaultProps = {
     element: 'div',
@@ -27,137 +22,121 @@ export default class InfiniteScroll extends Component {
     initialLoad: true,
     pageStart: 0,
     threshold: 250,
-    useWindow: true,
+    useWindow: false,
     isReverse: false,
     useCapture: false,
-    loader: null,
-  };
-
-  constructor(props) {
-    super(props);
-
-    this.scrollListener = this.scrollListener.bind(this);
+    loader: null
   }
 
   componentDidMount() {
-    this.pageLoaded = this.props.pageStart;
-    this.attachScrollListener();
+    // console.log('COMPONENT DID MOUNT')
+    this.pageLoaded = this.props.pageStart
   }
 
   componentDidUpdate() {
-    this.attachScrollListener();
+    if (this.props.isReverse && this.pageLoaded === this.props.pageStart) {
+      this.bottomNode.scrollIntoView()
+    }
+    if (this.props.isReverse && this.scrollComponent.parentNode.scrollTop < this.props.threshold) {
+      // console.log('JE DOIS DESCENDRE CAR TROP HAUT')
+      this.topNode.scrollIntoView()
+    }
+    this.attachScrollListener()
   }
 
   componentWillUnmount() {
-    this.detachScrollListener();
+    this.detachScrollListener()
   }
 
-  // Set a defaut loader for all your `InfiniteScroll` components
-  setDefaultLoader(loader) {
-    this.defaultLoader = loader;
-  }
+  handleRef = (node) => { this.scrollComponent = node }
+  handleTopRef = (node) => { this.topNode = node }
+  handleBottomRef = (node) => { this.bottomNode = node }
 
   detachScrollListener() {
-    let scrollEl = window;
-    if (this.props.useWindow === false) {
-      scrollEl = this.scrollComponent.parentNode;
-    }
+    const scrollEl = this.props.useWindow ? window : this.scrollComponent.parentNode
 
-    scrollEl.removeEventListener('scroll', this.scrollListener, this.props.useCapture);
-    scrollEl.removeEventListener('resize', this.scrollListener, this.props.useCapture);
+    scrollEl.removeEventListener('scroll', this.scrollListener, this.props.useCapture)
+    scrollEl.removeEventListener('resize', this.scrollListener, this.props.useCapture)
   }
 
   attachScrollListener() {
-    if (!this.props.hasMore) {
-      return;
-    }
+    if (!this.props.hasMore) { return }
 
-    let scrollEl = window;
-    if (this.props.useWindow === false) {
-      scrollEl = this.scrollComponent.parentNode;
-    }
+    const scrollEl = this.props.useWindow ? window : this.scrollComponent.parentNode
 
-    scrollEl.addEventListener('scroll', this.scrollListener, this.props.useCapture);
-    scrollEl.addEventListener('resize', this.scrollListener, this.props.useCapture);
+    scrollEl.addEventListener('scroll', this.scrollListener, this.props.useCapture)
+    scrollEl.addEventListener('resize', this.scrollListener, this.props.useCapture)
 
     if (this.props.initialLoad) {
-      this.scrollListener();
+      this.scrollListener()
     }
   }
 
-  scrollListener() {
-    const el = this.scrollComponent;
-    const scrollEl = window;
+  scrollListener = () => {
+    const el = this.scrollComponent
+    const scrollEl = window
 
-    let offset;
+    let offset
     if (this.props.useWindow) {
       const scrollTop = (scrollEl.pageYOffset !== undefined) ?
-       scrollEl.pageYOffset :
-       (document.documentElement || document.body.parentNode || document.body).scrollTop;
+      scrollEl.pageYOffset :
+      (document.documentElement || document.body.parentNode || document.body).scrollTop
       if (this.props.isReverse) {
-        offset = scrollTop;
+        offset = scrollTop
       } else {
-        offset = this.calculateTopPosition(el) +
-                     (el.offsetHeight -
-                     scrollTop -
-                     window.innerHeight);
+        offset = this.calculateTopPosition(el) + (el.offsetHeight - scrollTop - window.innerHeight)
       }
     } else if (this.props.isReverse) {
-      offset = el.parentNode.scrollTop;
+      offset = el.parentNode.scrollTop
     } else {
-      offset = el.scrollHeight - el.parentNode.scrollTop - el.parentNode.clientHeight;
+      offset = el.scrollHeight - el.parentNode.scrollTop - el.parentNode.clientHeight
     }
 
     if (offset < Number(this.props.threshold)) {
-      this.detachScrollListener();
-      // Call loadMore after detachScrollListener to allow for non-async loadMore functions
-      if (typeof this.props.loadMore === 'function') {
-        this.props.loadMore(this.pageLoaded += 1);
+      this.detachScrollListener()
+        // Call loadMore after detachScrollListener to allow for non-async loadMore functions
+      if (this.props.loadMore) {
+        this.props.loadMore(this.pageLoaded += 1)
       }
     }
   }
 
   calculateTopPosition(el) {
     if (!el) {
-      return 0;
+      return 0
     }
-    return el.offsetTop + this.calculateTopPosition(el.offsetParent);
+    return el.offsetTop + this.calculateTopPosition(el.offsetParent)
+  }
+
+  addRefPropToLastKeyChild(childrenArray) {
+    // console.log('ADDREF LAST KEY IS:', this.lastKey)
+    const lastKey = this.lastKey
+    this.lastKey = this.props.children[0].key
+    // console.log('ADDREF NEW LAST KEY IS:', this.lastKey)
+    const childIndex = this.props.children.findIndex((_child) => _child.key === lastKey)
+    // console.log('ADDREF CHILD:', childIndex)
+    if (childIndex === -1) {
+      return childrenArray
+    }
+    childrenArray.splice(childIndex, 1, {
+      ...childrenArray[childIndex],
+      ref: this.handleTopRef
+    })
+    return childrenArray
   }
 
   render() {
-    const {
-      children,
-      element,
-      hasMore,
-      initialLoad,
-      isReverse,
-      loader,
-      loadMore,
-      pageStart,
-      threshold,
-      useCapture,
-      useWindow,
-      ...props
-    } = this.props;
+    let childrenArray = this.props.isReverse ? this.props.children.reverse() : this.props.children
 
-    props.ref = (node) => {
-      this.scrollComponent = node;
-    };
-
-    const childrenArray = [children];
-    if (hasMore) {
-      if (loader) {
-        isReverse ? childrenArray.unshift(loader) : childrenArray.push(loader);
-      } else if (this.defaultLoader) {
-        isReverse ?
-          childrenArray.unshift(this.defaultLoader) :
-          childrenArray.push(this.defaultLoader);
-      }
+    if (this.props.isReverse && this.props.children.length) {
+      // console.log('RENDER: UPDATE CHILDREN ARRAY')
+      childrenArray = this.addRefPropToLastKeyChild(childrenArray)
+      // console.log('RENDER: LE CHILD ARRAY:', childrenArray)
+      childrenArray.push(<div ref={this.handleBottomRef} />)
     }
-    return React.createElement(
-        element,
-        props,
-        ...childrenArray,
-    );
+    if (this.props.hasMore) {
+      childrenArray[this.props.isReverse ? 'unshift' : 'shift'](this.props.loader || this.defaultLoader)
+    }
+    return React.createElement(this.props.element, { ref: this.handleRef }, ...childrenArray)
   }
 }
